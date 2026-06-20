@@ -1,0 +1,76 @@
+{
+  "name": "kestrel-desktop",
+  "version": "0.1.0",
+  "description": "Kestrel VoiceOps Desktop App",
+  "author": "Kestrel VoiceOps",
+  "main": "main/index.js",
+  "private": true,
+  "scripts": {
+    "dev": "nextron",
+    "build": "nextron build",
+    "build:windows": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false PATH=\"./renderer/node_modules/.bin;$PATH\" nextron build --win --x64",
+    "build:mac": "nextron build --mac --universal",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "dependencies": {
+    "electron-is-dev": "^2.0.0",
+    "electron-store": "^8.1.0"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1",
+    "next": "14.0.4",
+    "nextron": "^8.15.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@twilio/voice-sdk": "^2.18.0"
+  },
+  "build": {
+    "appId": "com.kestrel.voiceops",
+    "productName": "Kestrel VoiceOps",
+    "directories": {
+      "output": "dist",
+      "buildResources": "resources"
+    },
+    "files": [
+      "main/index.js",
+      "main/logger.js",
+      "main/preload.js",
+      "renderer/app/**/*",
+      "renderer/components/**/*",
+      "renderer/hooks/**/*",
+      "renderer/lib/**/*",
+      "renderer/types/**/*",
+      "renderer/package.json",
+      "renderer/next.config.js",
+      "renderer/tailwind.config.js",
+      "renderer/postcss.config.js",
+      "renderer/tsconfig.json",
+      "renderer/app/globals.css",
+      "node_modules/electron/**/*",
+      "node_modules/electron-store/**/*",
+      "node_modules/electron-is-dev/**/*"
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "resources/icon.ico",
+      "sign": null
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": "resources/icon.icns",
+      "category": "public.app-category.productivity"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false
+    }
+  }
+}
