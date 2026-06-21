@@ -85,7 +85,7 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:3000');
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../renderer/out/index.html'));
+    mainWindow.loadFile(path.join(__dirname, '../app/index.html'));
   }
 
   // Show window when ready to avoid flash

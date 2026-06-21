@@ -37,6 +37,7 @@
       "main/index.js",
       "main/logger.js",
       "main/preload.js",
+      "app/**/*",
       "renderer/app/**/*",
       "renderer/components/**/*",
       "renderer/hooks/**/*",
