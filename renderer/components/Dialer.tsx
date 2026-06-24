@@ -31,7 +31,7 @@ import OnboardingScreen from './OnboardingScreen';
 import AboutDialog from './AboutDialog';
 import SettingsDialog from './SettingsDialog';
 import OfflineBanner from './OfflineBanner';
-import { getDialerCore, initializeDialerCore } from '../lib/dialer-core-singleton';
+import { getDesktopDialerCore } from '../lib/twilio/DialerCore';
 
 const logger = getLogger();
 
@@ -124,7 +124,7 @@ export default function Dialer() {
   
   // Get DialerCore instance and setup event listeners
   useEffect(() => {
-    const dialerCore = getDialerCore();
+    const dialerCore = getDesktopDialerCore();
     
     const unsubscribeIncoming = dialerCore.on('callIncoming', (event, data) => {
       logger.info('Incoming call via DialerCore', data);
@@ -166,7 +166,7 @@ export default function Dialer() {
   const handleAcceptCall = async (callSid: string) => {
     logger.info('Accepting incoming call', { callSid });
     try {
-      const dialerCore = getDialerCore();
+      const dialerCore = getDesktopDialerCore();
       await dialerCore.acceptIncomingCall();
       setIncomingCall(null);
     } catch (error) {
@@ -177,7 +177,7 @@ export default function Dialer() {
   const handleRejectCall = async (callSid: string) => {
     logger.info('Rejecting incoming call', { callSid });
     try {
-      const dialerCore = getDialerCore();
+      const dialerCore = getDesktopDialerCore();
       await dialerCore.rejectIncomingCall();
       setIncomingCall(null);
     } catch (error) {
@@ -190,7 +190,7 @@ export default function Dialer() {
     if (!deviceReady || !phoneNumber) return;
     
     try {
-      const dialerCore = getDialerCore();
+      const dialerCore = getDesktopDialerCore();
       await dialerCore.makeCall({
         phoneNumber,
         enableRecording: true,
@@ -205,7 +205,7 @@ export default function Dialer() {
   // Call control handlers
   const handleEndCall = async () => {
     try {
-      const dialerCore = getDialerCore();
+      const dialerCore = getDesktopDialerCore();
       await dialerCore.endCall();
     } catch (error) {
       logger.error('Failed to end call', error);
