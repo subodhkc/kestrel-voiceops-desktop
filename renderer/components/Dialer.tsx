@@ -98,7 +98,7 @@ export default function Dialer() {
   // Initialize DialerCore when authenticated
   useEffect(() => {
     if (isAuthenticated && token) {
-      initializeDialerCore(token).catch((error) => {
+      getDesktopDialerCore().initialize(token).catch((error) => {
         logger.error('Failed to initialize DialerCore', error);
       });
     }
