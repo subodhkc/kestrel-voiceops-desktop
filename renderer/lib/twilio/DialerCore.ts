@@ -18,10 +18,11 @@
  * - Web: Device registered when dialer opens, unregistered when dialer closes
  * 
  * v0.11.10 - Added Promise-based registration and state machine
- * v0.11.20 - Added device lifecycle logging for debugging
+ * v0.11.22 - Changed to use desktop logger for main process log capture
  */
 
 import { Device, Call } from '@twilio/voice-sdk';
+import { getLogger } from '../desktop-logger';
 
 export type CallStatus = 'idle' | 'connecting' | 'ringing' | 'connected' | 'ended';
 export type RegistrationState = 'unregistered' | 'registering' | 'registered' | 'error';
@@ -74,6 +75,7 @@ export class DialerCore {
   private deviceCreatedAt: number | null = null; // Track device creation time for debugging
   private selectedInputDeviceId: string | null = null;
   private selectedOutputDeviceId: string | null = null;
+  private logger = getLogger();
 
   constructor(config?: Partial<DialerConfig>) {
     this.config = config || {};
@@ -121,7 +123,7 @@ export class DialerCore {
         try {
           callback(event, data);
         } catch (error) {
-          console.error(`[DialerCore] Error in ${event} callback:`, error);
+          this.logger.error(`[DialerCore] Error in ${event} callback:`, error);
         }
       });
     }
@@ -135,9 +137,9 @@ export class DialerCore {
 
     try {
       this.registrationState = 'registering';
-      console.log('[DialerCore] State changed to: registering');
+      this.logger.info('[DialerCore] State changed to: registering');
 
-      console.log('[DialerCore] Creating registration promise');
+      this.logger.info('[DialerCore] Creating registration promise');
       this.registrationPromise = new Promise((resolve) => {
         this.resolveRegistration = resolve;
       });
@@ -149,23 +151,23 @@ export class DialerCore {
       });
 
       this.deviceCreatedAt = Date.now();
-      console.log('[DialerCore] Device created at timestamp:', this.deviceCreatedAt);
+      this.logger.info('[DialerCore] Device created at timestamp:', this.deviceCreatedAt);
 
       this.setupDeviceEventHandlers();
       
-      console.log('[DialerCore] Calling device.register()');
+      this.logger.info('[DialerCore] Calling device.register()');
       await this.device.register();
-      console.log('[DialerCore] device.register() completed, waiting for registered event');
+      this.logger.info('[DialerCore] device.register() completed, waiting for registered event');
       
       // Wait for the registered event to fire
       await this.registrationPromise;
-      console.log('[DialerCore] Registration promise resolved - device is truly ready');
+      this.logger.info('[DialerCore] Registration promise resolved - device is truly ready');
       this.registrationState = 'registered';
-      console.log('[DialerCore] State changed to: registered');
+      this.logger.info('[DialerCore] State changed to: registered');
     } catch (error) {
-      console.error('[DialerCore] Failed to initialize device:', error);
+      this.logger.error('[DialerCore] Failed to initialize device:', error);
       this.registrationState = 'error';
-      console.log('[DialerCore] State changed to: error');
+      this.logger.info('[DialerCore] State changed to: error');
       this.emit('deviceError', error);
       throw error;
     }
@@ -182,9 +184,9 @@ export class DialerCore {
     try {
       this.token = token;
       await this.device.updateToken(token);
-      console.log('[DialerCore] Token updated successfully');
+      this.logger.info('[DialerCore] Token updated successfully');
     } catch (error) {
-      console.error('[DialerCore] Failed to update token:', error);
+      this.logger.error('[DialerCore] Failed to update token:', error);
       this.emit('deviceError', error);
       throw error;
     }
@@ -197,41 +199,41 @@ export class DialerCore {
     if (!this.device) return;
 
     this.device.on('registered', () => {
-      console.log('[DialerCore] Device registered');
+      this.logger.info('[DialerCore] Device registered');
       this.isRegistered = true;
       this.registrationState = 'registered';
-      console.log('[DialerCore] State changed to: registered');
+      this.logger.info('[DialerCore] State changed to: registered');
       this.emit('deviceRegistered');
       this.emit('deviceReady'); // Emit deviceReady when Twilio confirms registration
       // Resolve the registration promise
       if (this.resolveRegistration) {
-        console.log('[DialerCore] Resolving registration promise');
+        this.logger.info('[DialerCore] Resolving registration promise');
         this.resolveRegistration();
         this.resolveRegistration = null;
       }
     });
 
     this.device.on('unregistered', () => {
-      console.log('[DialerCore] Device unregistered - device will be destroyed');
+      this.logger.info('[DialerCore] Device unregistered - device will be destroyed');
       this.isRegistered = false;
       this.registrationState = 'unregistered';
-      console.log('[DialerCore] State changed to: unregistered');
-      console.log('[DialerCore] Device reference before null:', !!this.device);
+      this.logger.info('[DialerCore] State changed to: unregistered');
+      this.logger.info('[DialerCore] Device reference before null:', !!this.device);
       this.device = null; // Explicitly nullify device on unregistered
-      console.log('[DialerCore] Device reference after null:', !!this.device);
+      this.logger.info('[DialerCore] Device reference after null:', !!this.device);
       this.emit('deviceUnregistered');
     });
 
     this.device.on('error', (error: any) => {
-      console.error('[DialerCore] Device error:', error);
+      this.logger.error('[DialerCore] Device error:', error);
       this.isRegistered = false;
       this.registrationState = 'error';
-      console.log('[DialerCore] State changed to: error');
+      this.logger.info('[DialerCore] State changed to: error');
       this.emit('deviceError', error);
     });
 
     this.device.on('incoming', (call: Call) => {
-      console.log('[DialerCore] Incoming call');
+      this.logger.info('[DialerCore] Incoming call');
       this.activeCall = call;
       this.setupCallEventHandlers(call);
       this.emit('callIncoming', { callSid: call.parameters.CallSid });
@@ -243,7 +245,7 @@ export class DialerCore {
    */
   private setupCallEventHandlers(call: Call): void {
     call.on('accept', () => {
-      console.log('[DialerCore] Call accepted');
+      this.logger.info('[DialerCore] Call accepted');
       
       // Create audio element for mute control
       this.setupAudioElement(call);
@@ -252,28 +254,28 @@ export class DialerCore {
     });
 
     call.on('disconnect', () => {
-      console.log('[DialerCore] Call disconnected');
+      this.logger.info('[DialerCore] Call disconnected');
       this.cleanupAudioElement();
       this.activeCall = null;
       this.emit('callEnded');
     });
 
     call.on('cancel', () => {
-      console.log('[DialerCore] Call cancelled');
+      this.logger.info('[DialerCore] Call cancelled');
       this.cleanupAudioElement();
       this.activeCall = null;
       this.emit('callEnded');
     });
 
     call.on('reject', () => {
-      console.log('[DialerCore] Call rejected');
+      this.logger.info('[DialerCore] Call rejected');
       this.cleanupAudioElement();
       this.activeCall = null;
       this.emit('callEnded');
     });
 
     call.on('error', (error: any) => {
-      console.error('[DialerCore] Call error:', error);
+      this.logger.error('[DialerCore] Call error:', error);
       this.cleanupAudioElement();
       this.emit('callError', error);
     });
@@ -298,18 +300,18 @@ export class DialerCore {
           if (this.selectedOutputDeviceId) {
             if (typeof (this.audioElement as any).setSinkId === 'function') {
               (this.audioElement as any).setSinkId(this.selectedOutputDeviceId)
-                .then(() => console.log('[DialerCore] Output device applied'))
-                .catch((err: Error) => console.error('[DialerCore] Failed to set output device:', err));
+                .then(() => this.logger.info('[DialerCore] Output device applied'))
+                .catch((err: Error) => this.logger.error('[DialerCore] Failed to set output device:', err));
             }
           }
 
-          console.log('[DialerCore] Audio element created and stream attached');
+          this.logger.info('[DialerCore] Audio element created and stream attached');
         }
       } else {
-        console.warn('[DialerCore] No remote stream available for audio element');
+        this.logger.warn('[DialerCore] No remote stream available for audio element');
       }
     } catch (error) {
-      console.error('[DialerCore] Failed to setup audio element:', error);
+      this.logger.error('[DialerCore] Failed to setup audio element:', error);
     }
   }
 
@@ -321,7 +323,7 @@ export class DialerCore {
       this.audioElement.pause();
       this.audioElement.srcObject = null;
       this.audioElement = null;
-      console.log('[DialerCore] Audio element cleaned up');
+      this.logger.info('[DialerCore] Audio element cleaned up');
     }
   }
 
@@ -329,7 +331,7 @@ export class DialerCore {
    * Make an outbound call
    */
   async makeCall(options: CallOptions): Promise<Call> {
-    console.log('[DialerCore] makeCall called', {
+    this.logger.info('[DialerCore] makeCall called', {
       hasDevice: !!this.device,
       deviceCreatedAt: this.deviceCreatedAt,
       registrationState: this.registrationState,
@@ -339,7 +341,7 @@ export class DialerCore {
     });
 
     if (!this.device) {
-      console.error('[DialerCore] Device is null in makeCall!', {
+      this.logger.error('[DialerCore] Device is null in makeCall!', {
         deviceCreatedAt: this.deviceCreatedAt,
         registrationState: this.registrationState,
         isRegistered: this.isRegistered
@@ -349,9 +351,9 @@ export class DialerCore {
 
     // Wait for registration to complete if it's in progress
     if (this.registrationPromise) {
-      console.log('[DialerCore] Waiting for registration to complete before making call');
+      this.logger.info('[DialerCore] Waiting for registration to complete before making call');
       await this.registrationPromise;
-      console.log('[DialerCore] Registration completed, proceeding with call');
+      this.logger.info('[DialerCore] Registration completed, proceeding with call');
     }
 
     if (this.registrationState !== 'registered') {
@@ -387,10 +389,10 @@ export class DialerCore {
       this.activeCall = call;
       this.setupCallEventHandlers(call);
 
-      console.log('[DialerCore] Call initiated');
+      this.logger.info('[DialerCore] Call initiated');
       return call;
     } catch (error) {
-      console.error('[DialerCore] Failed to make call:', error);
+      this.logger.error('[DialerCore] Failed to make call:', error);
       this.emit('callError', error);
       throw error;
     }
@@ -406,9 +408,9 @@ export class DialerCore {
 
     try {
       await this.activeCall.accept();
-      console.log('[DialerCore] Incoming call accepted');
+      this.logger.info('[DialerCore] Incoming call accepted');
     } catch (error) {
-      console.error('[DialerCore] Failed to accept call:', error);
+      this.logger.error('[DialerCore] Failed to accept call:', error);
       this.emit('callError', error);
       throw error;
     }
@@ -425,9 +427,9 @@ export class DialerCore {
     try {
       await this.activeCall.reject();
       this.activeCall = null;
-      console.log('[DialerCore] Incoming call rejected');
+      this.logger.info('[DialerCore] Incoming call rejected');
     } catch (error) {
-      console.error('[DialerCore] Failed to reject call:', error);
+      this.logger.error('[DialerCore] Failed to reject call:', error);
       this.emit('callError', error);
       throw error;
     }
@@ -438,16 +440,16 @@ export class DialerCore {
    */
   async endCall(): Promise<void> {
     if (!this.activeCall) {
-      console.warn('[DialerCore] No active call to end');
+      this.logger.warn('[DialerCore] No active call to end');
       return;
     }
 
     try {
       this.activeCall.disconnect();
       this.activeCall = null;
-      console.log('[DialerCore] Call ended');
+      this.logger.info('[DialerCore] Call ended');
     } catch (error) {
-      console.error('[DialerCore] Failed to end call:', error);
+      this.logger.error('[DialerCore] Failed to end call:', error);
       this.emit('callError', error);
       throw error;
     }
@@ -458,7 +460,7 @@ export class DialerCore {
    */
   setAudioElement(element: HTMLAudioElement | null): void {
     this.audioElement = element;
-    console.log('[DialerCore] Audio element set');
+    this.logger.info('[DialerCore] Audio element set');
   }
 
   /**
@@ -472,12 +474,12 @@ export class DialerCore {
     try {
       if (this.audioElement) {
         this.audioElement.muted = true;
-        console.log('[DialerCore] Call muted');
+        this.logger.info('[DialerCore] Call muted');
       } else {
-        console.warn('[DialerCore] No audio element set for muting');
+        this.logger.warn('[DialerCore] No audio element set for muting');
       }
     } catch (error) {
-      console.error('[DialerCore] Failed to mute call:', error);
+      this.logger.error('[DialerCore] Failed to mute call:', error);
       throw error;
     }
   }
@@ -493,12 +495,12 @@ export class DialerCore {
     try {
       if (this.audioElement) {
         this.audioElement.muted = false;
-        console.log('[DialerCore] Call unmuted');
+        this.logger.info('[DialerCore] Call unmuted');
       } else {
-        console.warn('[DialerCore] No audio element set for unmuting');
+        this.logger.warn('[DialerCore] No audio element set for unmuting');
       }
     } catch (error) {
-      console.error('[DialerCore] Failed to unmute call:', error);
+      this.logger.error('[DialerCore] Failed to unmute call:', error);
       throw error;
     }
   }
@@ -514,9 +516,9 @@ export class DialerCore {
     try {
       // Twilio Call.sendDigits() sends DTMF tones
       this.activeCall.sendDigits(digit);
-      console.log('[DialerCore] DTMF digit sent:', digit);
+      this.logger.info('[DialerCore] DTMF digit sent:', digit);
     } catch (error) {
-      console.error('[DialerCore] Failed to send DTMF digit:', error);
+      this.logger.error('[DialerCore] Failed to send DTMF digit:', error);
       throw error;
     }
   }
@@ -541,7 +543,7 @@ export class DialerCore {
 
       return audioDevices;
     } catch (error) {
-      console.error('[DialerCore] Failed to enumerate audio devices:', error);
+      this.logger.error('[DialerCore] Failed to enumerate audio devices:', error);
       return [];
     }
   }
@@ -551,7 +553,7 @@ export class DialerCore {
    */
   async setAudioInputDevice(deviceId: string): Promise<void> {
     this.selectedInputDeviceId = deviceId;
-    console.log('[DialerCore] Audio input device set:', deviceId);
+    this.logger.info('[DialerCore] Audio input device set:', deviceId);
     // Note: Will be applied on next call via media stream constraints
   }
 
@@ -560,7 +562,7 @@ export class DialerCore {
    */
   async setAudioOutputDevice(deviceId: string): Promise<void> {
     this.selectedOutputDeviceId = deviceId;
-    console.log('[DialerCore] Audio output device set:', deviceId);
+    this.logger.info('[DialerCore] Audio output device set:', deviceId);
     
     // Apply to existing audio element if call is active
     if (this.audioElement) {
@@ -568,12 +570,12 @@ export class DialerCore {
         // Check if setSinkId is supported (Chrome/Edge)
         if (typeof (this.audioElement as any).setSinkId === 'function') {
           await (this.audioElement as any).setSinkId(deviceId);
-          console.log('[DialerCore] Output device applied to active audio element');
+          this.logger.info('[DialerCore] Output device applied to active audio element');
         } else {
-          console.warn('[DialerCore] setSinkId not supported in this browser');
+          this.logger.warn('[DialerCore] setSinkId not supported in this browser');
         }
       } catch (error) {
-        console.error('[DialerCore] Failed to set output device on active element:', error);
+        this.logger.error('[DialerCore] Failed to set output device on active element:', error);
       }
     }
   }
@@ -651,9 +653,9 @@ export class DialerCore {
       this.device = null;
       
       this.emit('deviceUnregistered');
-      console.log('[DialerCore] Device unregistered and destroyed');
+      this.logger.info('[DialerCore] Device unregistered and destroyed');
     } catch (error) {
-      console.error('[DialerCore] Failed to unregister device:', error);
+      this.logger.error('[DialerCore] Failed to unregister device:', error);
       throw error;
     }
   }
@@ -666,9 +668,9 @@ export class DialerCore {
       await this.unregister();
       this.eventCallbacks.clear();
       this.token = null;
-      console.log('[DialerCore] DialerCore destroyed');
+      this.logger.info('[DialerCore] DialerCore destroyed');
     } catch (error) {
-      console.error('[DialerCore] Failed to destroy dialer core:', error);
+      this.logger.error('[DialerCore] Failed to destroy dialer core:', error);
       throw error;
     }
   }
