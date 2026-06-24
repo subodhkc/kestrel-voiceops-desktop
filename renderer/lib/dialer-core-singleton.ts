@@ -5,7 +5,7 @@
  * The device is registered on app launch and never unregistered while running.
  */
 
-import { DialerCore } from '../../../frontend/lib/twilio/DialerCore';
+import { DialerCore } from './twilio/DialerCore';
 import { getLogger } from '../lib/desktop-logger';
 
 const logger = getLogger();
