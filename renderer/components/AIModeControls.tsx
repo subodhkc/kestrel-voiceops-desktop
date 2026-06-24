@@ -64,7 +64,7 @@ export default function AIModeControls({ currentMode, onModeChange, disabled = f
   };
 
   return (
-    <div className="bg-gray-800 rounded-lg p-6">
+    <div className="bg-gray-800/60 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl shadow-black/20">
       <h3 className="text-lg font-semibold mb-4 text-white">AI Mode</h3>
       
       <div className="space-y-2">
@@ -73,10 +73,10 @@ export default function AIModeControls({ currentMode, onModeChange, disabled = f
             key={mode.value}
             onClick={() => onModeChange(mode.value)}
             disabled={disabled}
-            className={`w-full text-left p-3 rounded-lg transition-colors ${
+            className={`w-full text-left p-3 rounded-xl transition-all backdrop-blur-sm border border-white/10 shadow-lg ${
               currentMode === mode.value
                 ? getColorClass(mode.color, true)
-                : 'bg-gray-700 hover:bg-gray-600'
+                : 'bg-gray-700/60 hover:bg-gray-600/60'
             } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <div className="flex items-center justify-between">

@@ -756,7 +756,7 @@ export default function Dialer() {
 
         {!deviceReady && (
 
-          <div className="bg-yellow-900/30 border border-yellow-700 rounded-lg p-4 mb-6">
+          <div className="bg-yellow-900/40 backdrop-blur-sm border border-yellow-600/30 rounded-xl p-4 mb-6 shadow-lg">
 
             <p className="text-yellow-200 text-sm">
 
@@ -776,7 +776,7 @@ export default function Dialer() {
 
                 onClick={() => initializeDevice()}
 
-                className="mt-3 bg-yellow-600 hover:bg-yellow-700 text-white text-sm py-2 px-4 rounded transition-colors"
+                className="mt-3 bg-yellow-600/80 hover:bg-yellow-700/80 text-white text-sm py-2 px-4 rounded-xl transition-all backdrop-blur-sm border border-white/10 shadow-lg"
 
               >
 
@@ -796,7 +796,7 @@ export default function Dialer() {
 
         <div className="max-w-md mx-auto">
 
-          <div className="bg-gray-800 rounded-lg p-6">
+          <div className="bg-gray-800/60 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl shadow-black/20">
 
             {/* Phone Number Input */}
 
@@ -810,7 +810,7 @@ export default function Dialer() {
 
               placeholder="Enter phone number"
 
-              className="w-full bg-gray-700 text-white text-2xl text-center py-4 px-4 rounded-lg mb-6 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full bg-gray-700/50 backdrop-blur-sm border border-white/10 text-white text-2xl text-center py-4 px-4 rounded-xl mb-6 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
 
               disabled={!deviceReady || isCalling}
 
@@ -926,7 +926,7 @@ export default function Dialer() {
 
                       onClick={() => handleKeypadPress(digit)}
 
-                      className="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-4 rounded-lg transition-colors"
+                      className="bg-gray-700/60 backdrop-blur-sm border border-white/10 hover:bg-gray-600/60 text-white font-semibold py-4 rounded-xl transition-all shadow-lg"
 
                     >
 
